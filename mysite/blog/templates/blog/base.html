@@ -10,6 +10,7 @@
     <link href="{% static 'css/blog.css' %}" rel="stylesheet">
 </head>
 <body>
+<div class="wrapper">
     <div id="content">
         {% block content %}
         {% endblock %}
@@ -46,5 +47,6 @@
             {% endfor %}
         </ul>
     </div>
+</div>
 </body>
 </html>
