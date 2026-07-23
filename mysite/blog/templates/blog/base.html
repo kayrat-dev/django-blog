@@ -1,52 +1,100 @@
 {% load blog_tags %}
 {% load static %}
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
+
 <head>
-    <title>
-        {% block title %}
-        {% endblock %}
-    </title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="{% static 'css/blog.css' %}" rel="stylesheet">
 </head>
 <body>
+<header class="site-header">
+    <div class="header-container">
+        <h1>
+            <a href="{% url 'blog:post_list' %}">
+                Мой блог
+            </a>
+        </h1>
+        <p>
+            Наши объединяющие мысли
+        </p>
+    </div>
+</header>
 <div class="wrapper">
-    <div id="content">
+    <main id="content">
         {% block content %}
         {% endblock %}
-    </div>
-    <div id="sidebar">
-        <h2>#BLOG</h2>
-        <p>
-            Blog for opinion.
-            I've written {% total_posts %} posts so far.
-        </p>
-        <p>
-            <a href="{% url "blog:post_feed" %}">
-                Subscribe to my RSS feed
+    </main>
+    <aside id="sidebar">
+        <section class="sidebar-block">
+            <h2>
+                #БЛОГ
+            </h2>
+            <p>
+                Блог мыслей
+            </p>
+            <p>
+                Доступно
+                <strong>{% total_posts %}</strong>
+                блога
+            </p>
+        </section>
+        <section class="sidebar-block">
+            <a class="rss-link"
+               href="{% url 'blog:post_feed' %}">
+                📡 Подписаться на RSS-канал
             </a>
-        </p>
-        <div style="margin: 15px 0; overflow: hidden;">
-            <form action="{% url 'blog:post_search' %}" method="get">
-                <input type="text" name="query" placeholder="Поиск по блогу..." style="width: 50%; box-sizing: border-box; margin-bottom: 5px;">
-                <br>
-                <input type="submit" value="Найти">
+        </section>
+        <section class="sidebar-block search-box">
+            <h3>
+                Найдем быстро
+            </h3>
+            <form action="{% url 'blog:post_search' %}"
+                  method="get">
+                <input
+                    class="search-input"
+                    type="text"
+                    name="query"
+                    placeholder="Поиск по блогу...">
+                <button class="search-button"
+                        type="submit">
+                    Найти
+                </button>
             </form>
-        </div>
-        <h3 style="clear: both; margin-top: 20px;">Latest posts</h3>
-        {% show_latest_posts 3 %}
-        <h3>Most commented posts</h3>
-        {% get_most_commented_posts as most_commented_posts %}
-        <ul>
+        </section>
+        <section class="sidebar-block">
+            <h3>
+                Свежие посты
+            </h3>
+            {% show_latest_posts 3 %}
+        </section>
+        <section class="sidebar-block">
+            <h3>
+                Обсуждаемые посты
+            </h3>
+            {% get_most_commented_posts as most_commented_posts %}
+            <ul class="sidebar-list">
             {% for post in most_commented_posts %}
-            <li>
-                <a href="{{ post.get_absolute_url }}">{{ post.title }}</a>
-            </li>
+                <li>
+                    <a href="{{ post.get_absolute_url }}">
+                        {{ post.title }}
+                    </a>
+                </li>
             {% empty %}
-                <li>Пока нет популярных постов</li>
+                <li>
+                    Пока нет популярных постов
+                </li>
             {% endfor %}
-        </ul>
-    </div>
+            </ul>
+        </section>
+    </aside>
 </div>
+<footer class="site-footer">
+    <p>
+        © {% now "Y" %} Мой Блог
+    </p>
+</footer>
 </body>
 </html>
