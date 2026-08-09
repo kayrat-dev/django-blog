@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Post
-from django.views.generic import ListView
+from django.views.generic import ListView, FormView
 from .forms import EmailPostForm, CommentForm, SearchForm
 from django.core.mail import send_mail
 from django.views.decorators.http import require_POST
@@ -43,6 +43,8 @@ class PostListView(ListView):
             context['tag'] = self.tag
         return context
 
+
+
 def post_detail(request, year, month, day, post):
     post = get_object_or_404(Post, slug=post,
                                    status=Post.Status.PUBLISHED,
@@ -61,25 +63,38 @@ def post_detail(request, year, month, day, post):
                   'blog/post/detail.html',
                   {'post': post, 'comments': comments, 'form': form, 'similar_posts': similar_posts})
 
-def post_share(request, post_id):
-    post = get_object_or_404(Post, id=post_id, status=Post.Status.PUBLISHED)
 
-    sent = False
 
-    if request.method == 'POST':
-        form = EmailPostForm(request.POST)
-        if form.is_valid():
-            cd = form.cleaned_data
-            post_url = request.build_absolute_uri(post.get_absolute_url())
-            subject = f"{cd['name']} recommends you read " \
-                      f"{post.title}"
-            message = f"Read {post.title} at {post_url}\n\n" \
-                      f"{cd['name']}\'s comments: {cd['comments']}"
-            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [cd['to']])
-            sent = True
-    else:
-        form = EmailPostForm()
-    return render(request, 'blog/post/share.html', {'post': post, 'form': form, 'sent': sent})
+class PostShareView(FormView):
+    form_class = EmailPostForm
+    template_name = 'blog/post/share.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.blog_post = get_object_or_404(Post, id=kwargs['post_id'], status=Post.Status.PUBLISHED)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post'] = self.blog_post
+        return context
+
+    def form_valid(self, form):
+        cd = form.cleaned_data
+        post_url = self.request.build_absolute_uri(self.blog_post.get_absolute_url())
+        subject = f"{cd['name']} recommends you read {self.blog_post.title}."
+        message = (
+            f"Read {self.blog_post.title} at {post_url}\n"
+            f"{cd['name']}'s comments: {cd['comments']}"
+        )
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [cd['to']],
+        )
+        context = self.get_context_data(sent=True)
+        return self.render_to_response(context)
+
 
 def post_search(request):
     form = SearchForm()
