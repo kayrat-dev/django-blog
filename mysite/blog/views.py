@@ -1,27 +1,34 @@
-from django.shortcuts import render, get_object_or_404, redirect
-from .models import Post
-from django.views.generic import ListView, FormView
+from django.shortcuts import render, get_object_or_404
+from .models import Post, Comment
+from django.views.generic import ListView, FormView, CreateView
 from .forms import EmailPostForm, CommentForm, SearchForm
 from django.core.mail import send_mail
-from django.views.decorators.http import require_POST
 from taggit.models import Tag
 from django.db.models import Count
-from django.contrib.postgres.search import TrigramSimilarity
+from django.contrib.postgres.search import SearchVector
 from django.conf import settings
 
-@require_POST
-def post_comment(request, post_id):
-    post = get_object_or_404(Post, id=post_id, status=Post.Status.PUBLISHED)
-    comment = None
-    form = CommentForm(data=request.POST)
 
-    if form.is_valid():
-        comment = form.save(commit=False)
-        comment.post = post
-        comment.save()
-        return redirect(post)
+class PostCommentView(CreateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/post/comment.html'
 
-    return render(request, 'blog/post/comment.html', {'post': post, 'form': form, 'comment': comment})
+    def dispatch(self, request, *args, **kwargs):
+        self.blog_post = get_object_or_404(Post, id=kwargs['post_id'], status=Post.Status.PUBLISHED)
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        form.instance.post = self.blog_post
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post'] = self.blog_post
+        return context
+
+    def get_success_url(self):
+        return self.blog_post.get_absolute_url()
 
 class PostListView(ListView):
     queryset = Post.published.all()
@@ -96,15 +103,18 @@ class PostShareView(FormView):
         return self.render_to_response(context)
 
 
-def post_search(request):
-    form = SearchForm()
-    query = None
-    results = []
 
-    if 'query' in request.GET:
-        form = SearchForm(request.GET)
-        if form.is_valid():
-            query = form.cleaned_data['query']
-            results = Post.published.annotate(similarity=TrigramSimilarity('title', query),).filter(similarity__gt=0.1).order_by('-similarity')
+class PostSearchView(FormView):
+    form_class = SearchForm
+    template_name = 'blog/post/search.html'
 
-    return render(request,'blog/post/search.html', {'form': form, 'query': query, 'results': results})
+    def get(self, request, *args, **kwargs):
+        query = None
+        results = []
+        form = self.form_class(request.GET)
+        if 'query' in request.GET:
+            if form.is_valid():
+                query = form.cleaned_data['query']
+                results = Post.published.annotate(search=SearchVector('title', 'body')).filter(search=query)
+        return self.render_to_response(self.get_context_data(form=form, query=query, results=results))
+
