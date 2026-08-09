@@ -7,6 +7,7 @@ from django.views.decorators.http import require_POST
 from taggit.models import Tag
 from django.db.models import Count
 from django.contrib.postgres.search import TrigramSimilarity
+from django.conf import settings
 
 @require_POST
 def post_comment(request, post_id):
@@ -74,7 +75,7 @@ def post_share(request, post_id):
                       f"{post.title}"
             message = f"Read {post.title} at {post_url}\n\n" \
                       f"{cd['name']}\'s comments: {cd['comments']}"
-            send_mail(subject, message, 'your_account@gmail.com', [cd['to']])
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [cd['to']])
             sent = True
     else:
         form = EmailPostForm()
