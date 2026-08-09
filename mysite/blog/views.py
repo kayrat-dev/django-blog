@@ -1,14 +1,18 @@
-from django.shortcuts import render, get_object_or_404
-from .models import Post, Comment
-from django.views.generic import ListView, FormView, CreateView
+from django.shortcuts import get_object_or_404
+from django.db.models import Count
+from django.views.generic import ListView, FormView, CreateView, DetailView
 from .forms import EmailPostForm, CommentForm, SearchForm
 from django.core.mail import send_mail
-from taggit.models import Tag
-from django.db.models import Count
-from django.contrib.postgres.search import SearchVector
+from django.contrib.postgres.search import TrigramSimilarity
 from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.http import require_POST
+
+from .models import Post, Comment
+from taggit.models import Tag
 
 
+@method_decorator(require_POST, name='dispatch')
 class PostCommentView(CreateView):
     model = Comment
     form_class = CommentForm
@@ -19,16 +23,19 @@ class PostCommentView(CreateView):
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        form.instance.post = self.blog_post
-        return super().form_valid(form)
+        comment = form.save(commit=False)
+        comment.post = self.blog_post
+        comment.save()
+        return self.render_to_response(
+            self.get_context_data(form=form, comment=comment)
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['post'] = self.blog_post
+        if 'comment' in kwargs:
+            context['comment'] = kwargs['comment']
         return context
-
-    def get_success_url(self):
-        return self.blog_post.get_absolute_url()
 
 class PostListView(ListView):
     queryset = Post.published.all()
@@ -51,24 +58,35 @@ class PostListView(ListView):
         return context
 
 
+class PostDetailView(DetailView):
+    model = Post
+    template_name = 'blog/post/detail.html'
+    context_object_name = 'post'
 
-def post_detail(request, year, month, day, post):
-    post = get_object_or_404(Post, slug=post,
-                                   status=Post.Status.PUBLISHED,
-                                   publish__year=year,
-                                   publish__month=month,
-                                   publish__day=day)
+    def get_object(self, queryset=None):
+        return get_object_or_404(
+            Post,
+            status=Post.Status.PUBLISHED,
+            slug=self.kwargs['post'],
+            publish__year=self.kwargs['year'],
+            publish__month=self.kwargs['month'],
+            publish__day=self.kwargs['day']
+        )
 
-    comments = post.comments.filter(active=True)
-    form = CommentForm()
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['comments'] = self.object.comments.filter(active=True)
+        context['form'] = CommentForm()
 
-    post_tags_ids = post.tags.values_list('id', flat=True)
-    similar_posts = Post.published.filter(tags__in=post_tags_ids).exclude(id=post.id)
-    similar_posts = similar_posts.annotate(same_tags=Count('tags')).order_by('-same_tags', '-publish')[:4]
+        post_tags_ids = self.object.tags.values_list('id', flat=True)
+        similar_posts = Post.published.filter(
+            tags__in=post_tags_ids
+        ).exclude(id=self.object.id)
 
-    return render(request,
-                  'blog/post/detail.html',
-                  {'post': post, 'comments': comments, 'form': form, 'similar_posts': similar_posts})
+        context['similar_posts'] = similar_posts.annotate(
+            same_tags=Count('tags')
+        ).order_by('-same_tags', '-publish')[:4]
+
 
 
 
@@ -112,9 +130,8 @@ class PostSearchView(FormView):
         query = None
         results = []
         form = self.form_class(request.GET)
-        if 'query' in request.GET:
-            if form.is_valid():
-                query = form.cleaned_data['query']
-                results = Post.published.annotate(search=SearchVector('title', 'body')).filter(search=query)
+        if 'query' in request.GET and form.is_valid():
+            query = form.cleaned_data['query']
+            results = Post.published.annotate(similarity=TrigramSimilarity('title', query)).filter(similarity__gt=0.1).order_by('-similarity')
         return self.render_to_response(self.get_context_data(form=form, query=query, results=results))
 
