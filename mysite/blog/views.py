@@ -87,7 +87,7 @@ class PostDetailView(DetailView):
             same_tags=Count('tags')
         ).order_by('-same_tags', '-publish')[:4]
 
-
+        return context
 
 
 class PostShareView(FormView):
