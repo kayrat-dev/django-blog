@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Count
 from django.views.generic import ListView, FormView, CreateView, DetailView
 from django.core.mail import send_mail
-from django.contrib.postgres.search import TrigramSimilarity
+from django.contrib.postgres.search import TrigramSimilarity, SearchVector, SearchQuery, SearchRank
 from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
@@ -131,8 +131,25 @@ class PostSearchView(FormView):
         query = None
         results = []
         form = self.form_class(request.GET)
+
         if 'query' in request.GET and form.is_valid():
             query = form.cleaned_data['query']
-            results = Post.published.annotate(similarity=TrigramSimilarity('title', query)).filter(similarity__gt=0.1).order_by('-similarity')
+
+            if query:
+                vector = SearchVector('title', weight='A') + SearchVector('body', weight='B')
+                search_query = SearchQuery(query)
+
+                results = (
+                    Post.published
+                    .annotate(rank=SearchRank(vector, search_query))
+                    .filter(rank__gt=0.01)
+                    .order_by('-rank')
+                )
+
+                if not results.exists():
+                    similarity = (TrigramSimilarity('title', query) * 3 + TrigramSimilarity('body', query))
+
+                    results = Post.published.annotate(similarity=similarity).filter(similarity__gt=0.1).order_by('-similarity')
+
         return self.render_to_response(self.get_context_data(form=form, query=query, results=results))
 
