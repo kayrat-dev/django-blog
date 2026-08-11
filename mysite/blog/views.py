@@ -39,14 +39,14 @@ class PostCommentView(CreateView):
         return context
 
 class PostListView(ListView):
-    queryset = Post.published.all()
     context_object_name = 'posts'
     paginate_by = 3
     template_name = 'blog/post/list.html'
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = Post.published.select_related('author').prefetch_related('tags')
         tag_slug = self.kwargs.get('tag_slug')
+
         if tag_slug:
             self.tag = get_object_or_404(Tag, slug=tag_slug)
             queryset = queryset.filter(tags__in=[self.tag])
@@ -135,7 +135,7 @@ class PostSearchView(FormView):
         if 'query' in request.GET and form.is_valid():
             query = form.cleaned_data['query']
 
-            if query:
+            if len(query) >= 3:
                 vector = SearchVector('title', weight='A') + SearchVector('body', weight='B')
                 search_query = SearchQuery(query)
 
