@@ -1,15 +1,16 @@
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.db.models import Count
 from django.views.generic import ListView, FormView, CreateView, DetailView
-from .forms import EmailPostForm, CommentForm, SearchForm
 from django.core.mail import send_mail
 from django.contrib.postgres.search import TrigramSimilarity
 from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
-
-from .models import Post, Comment
 from taggit.models import Tag
+from django.contrib import messages
+
+from .forms import EmailPostForm, CommentForm, SearchForm
+from .models import Post, Comment
 
 
 @method_decorator(require_POST, name='dispatch')
@@ -26,9 +27,9 @@ class PostCommentView(CreateView):
         comment = form.save(commit=False)
         comment.post = self.blog_post
         comment.save()
-        return self.render_to_response(
-            self.get_context_data(form=form, comment=comment)
-        )
+
+        messages.success(self.request, 'Your comment has been successfully added!')
+        return redirect(self.blog_post)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
