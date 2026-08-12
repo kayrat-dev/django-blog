@@ -12,6 +12,7 @@ from django.contrib import messages
 from .forms import EmailPostForm, CommentForm, SearchForm
 from .models import Post, Comment
 
+from .tasks import send_post_share_email
 
 @method_decorator(require_POST, name='dispatch')
 class PostCommentView(CreateView):
@@ -118,11 +119,11 @@ class PostShareView(FormView):
             f"Read {self.blog_post.title} at {post_url}\n"
             f"{cd['name']}'s comments: {cd['comments']}"
         )
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [cd['to']],
+        send_post_share_email.delay(
+            subject=subject,
+            message=message,
+            from_email=None,
+            recipient_list=[cd['to']]
         )
         context = self.get_context_data(sent=True)
         return self.render_to_response(context)
