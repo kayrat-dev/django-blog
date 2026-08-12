@@ -8,6 +8,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
 from taggit.models import Tag
 from django.contrib import messages
+from django_ratelimit.decorators import ratelimit
+
 
 from .forms import EmailPostForm, CommentForm, SearchForm
 from .models import Post, Comment
@@ -97,7 +99,7 @@ class PostDetailView(DetailView):
 
         return context
 
-
+@method_decorator(ratelimit(key='ip', rate='3/m', method='POST', block=True), name='dispatch')
 class PostShareView(FormView):
     form_class = EmailPostForm
     template_name = 'blog/post/share.html'
