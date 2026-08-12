@@ -23,4 +23,4 @@ def show_latest_posts(count=5):
 
 @register.filter(name='markdown')
 def markdown_format(text):
-    return mark_safe(markdown.markdown(text))
+    return mark_safe(markdown.markdown(text, extensions=['extra', 'nl2br', 'sane_lists']))
