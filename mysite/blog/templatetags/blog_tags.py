@@ -1,6 +1,6 @@
 from django import template
 from ..models import Post
-from django.db.models import Count
+from django.db.models import Count, Q
 import markdown
 from django.utils.safestring import mark_safe
 
@@ -9,7 +9,7 @@ register = template.Library()
 @register.simple_tag
 def get_most_commented_posts(count=5):
     return Post.published.annotate(
-        total_comments=Count('comments')
+        total_comments=Count('comments', filter=Q(comments__active=True))
     ).order_by('-total_comments')[:count]
 
 @register.simple_tag
