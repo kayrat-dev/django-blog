@@ -80,15 +80,11 @@ CELERY_BROKER_URL=redis://localhost:6379/0
 ### 3. Настройка PostgreSQL и миграции
 
 1. Убедитесь, что PostgreSQL запущен и создана база данных `blog_db`.
-2. Включите расширение `pg_trgm` в PostgreSQL для работы поиска по опечаткам:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS pg_trgm;
-   ```
-3. Примените миграции:
+2. Примените миграции (расширение `pg_trgm` для триграммного поиска включится автоматически):
    ```bash
    python manage.py migrate
    ```
-4. Создайте администратора:
+3. Создайте администратора:
    ```bash
    python manage.py createsuperuser
    ```
