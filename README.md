@@ -38,7 +38,7 @@
 ## 🛠 Технологический стек
 
 * **Бэкенд:** Python 3.14+, Django 6.0
-* **База данных:** PostgreSQL (поддержка `pg_trgm` и полнотекстового поиска)
+* **База данных:** PostgreSQL (полнотекстовый поиск + модуль `pg_trgm` для триграммного поиска)
 * **Фоновые задачи:** Celery + Redis / RabbitMQ
 * **Работа с Markdown:** `markdown`
 * **Оптимизация ORM:** `select_related`, `prefetch_related` (защита от N+1)
