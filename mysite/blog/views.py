@@ -1,4 +1,4 @@
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import Count
 from django.views.generic import ListView, FormView, CreateView, DetailView
 from django.core.mail import send_mail
@@ -18,6 +18,12 @@ class PostCommentView(CreateView):
     model = Comment
     form_class = CommentForm
     template_name = 'blog/post/comment.html'
+
+    def form_invalid(self, form):
+        post = get_object_or_404(Post, id=self.kwargs.get('post_id'), status=Post.Status.PUBLISHED)
+        comments = post.comments.filter(active=True)
+
+        return render(self.request, 'blog/post/detail.html', {'post': post, 'form': form, 'comments': comments})
 
     def dispatch(self, request, *args, **kwargs):
         self.blog_post = get_object_or_404(Post, id=kwargs['post_id'], status=Post.Status.PUBLISHED)
