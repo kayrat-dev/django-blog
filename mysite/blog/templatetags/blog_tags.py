@@ -7,6 +7,13 @@ from django.utils.safestring import mark_safe
 register = template.Library()
 
 @register.simple_tag
+def url_replace(request, field, value):
+    dict_ = request.GET.copy()
+    dict_[field] = value
+    return dict_.urlencode()
+
+
+@register.simple_tag
 def get_most_commented_posts(count=5):
     return Post.published.annotate(
         total_comments=Count('comments', filter=Q(comments__active=True))

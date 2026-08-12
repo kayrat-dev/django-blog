@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from taggit.models import Tag
 from django.contrib import messages
 from django_ratelimit.decorators import ratelimit
-
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from .forms import EmailPostForm, CommentForm, SearchForm
 from .models import Post, Comment
@@ -143,6 +143,7 @@ class PostSearchView(FormView):
     def get(self, request, *args, **kwargs):
         query = None
         results = []
+        page_obj = None
         form = self.form_class(request.GET)
 
         if 'query' in request.GET and form.is_valid():
@@ -161,8 +162,18 @@ class PostSearchView(FormView):
 
                 if not results.exists():
                     similarity = (TrigramSimilarity('title', query) * 3 + TrigramSimilarity('body', query))
-
                     results = Post.published.annotate(similarity=similarity).filter(similarity__gt=0.1).order_by('-similarity')
 
-        return self.render_to_response(self.get_context_data(form=form, query=query, results=results))
+            paginator = Paginator(results, 3)
+            page_number = request.GET.get('page')
+
+            try:
+                page_obj = paginator.page(page_number)
+            except PageNotAnInteger:
+                page_obj = paginator.page(1)
+            except EmptyPage:
+                page_obj = paginator.page(paginator.num_pages)
+
+
+        return self.render_to_response(self.get_context_data(form=form, query=query, results=page_obj, page_obj=page_obj))
 
