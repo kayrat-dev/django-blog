@@ -16,7 +16,7 @@ from .models import Post, Comment
 
 from .tasks import send_post_share_email
 
-@method_decorator(require_POST, name='dispatch')
+@method_decorator(ratelimit(key='ip', rate='3/m', method='POST', block=True), name='dispatch')
 class PostCommentView(CreateView):
     model = Comment
     form_class = CommentForm
