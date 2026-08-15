@@ -1,5 +1,7 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.urls import reverse
+
 from .models import Post
 
 class PostModelTest(TestCase):
@@ -35,3 +37,14 @@ class PostModelTest(TestCase):
         self.assertNotIn(self.draft_post, published_posts)
 
         self.assertEqual(published_posts.count(), 1)
+
+
+    def test_post_list_view_does_not_contain_draft(self):
+        """Проверяем опубликованные посты на главной странице"""
+        response = self.client.get(reverse('blog:post_list'))
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertContains(response, self.published_post.title)
+
+        self.assertNotContains(response, self.draft_post.title)
