@@ -1,13 +1,14 @@
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.core import mail
 
 from .models import Post
 
 class PostModelTest(TestCase):
 
     def setUp(self):
-        """создание тестовых данных перед запуском тестов."""
+        """Создаем тестовых данных перед запуском тестов."""
         self.user = User.objects.create_user(
             username='testuser', password='password123'
         )
@@ -48,3 +49,22 @@ class PostModelTest(TestCase):
         self.assertContains(response, self.published_post.title)
 
         self.assertNotContains(response, self.draft_post.title)
+
+
+    def test_posts_share_sends_mail(self):
+        """Проверяем успешную валидацию формы и отправку через outbox"""
+        url = reverse('blog:post_share', args=[self.published_post.id])
+        response = self.client.post(url, {
+            'name': 'Катя',
+            'email': 'sender@example.com',
+            'to': 'receiver@example.com',
+            'comments': 'Прочитай это!'
+        })
+
+        self.assertIn(response.status_code, [200, 302])
+
+        self.assertEqual(len(mail.outbox), 1)
+
+        sent_email = mail.outbox[0]
+        self.assertEqual(sent_email.to, ['receiver@example.com'])
+        self.assertIn('Катя', sent_email.subject)
