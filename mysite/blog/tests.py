@@ -82,3 +82,31 @@ class PostModelTest(TestCase):
         self.assertContains(response, self.published_post.title)
 
         self.assertNotContains(response, self.draft_post.title)
+
+
+    def test_post_comment(self):
+        """Проверяем успешную работу добавления комментариев"""
+        url = reverse('blog:post_comment', args=[self.published_post.id])
+        response = self.client.post(url, {
+            'name': 'Вова',
+            'email': 'sender@example.com',
+            'body': 'Отличная статья!',
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+
+        comments = self.published_post.comments.all()
+        self.assertEqual(comments.count(), 1)
+
+        comment = comments.first()
+        self.assertEqual(comment.name, 'Вова')
+        self.assertEqual(comment.body, 'Отличная статья!')
+
+        self.assertContains(response, 'Отличная статья!')
+
+
+
+
+
+
+
