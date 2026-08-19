@@ -68,3 +68,17 @@ class PostModelTest(TestCase):
         sent_email = mail.outbox[0]
         self.assertEqual(sent_email.to, ['receiver@example.com'])
         self.assertIn('Катя', sent_email.subject)
+
+
+    def test_search_posts(self):
+        """Проверяем успешную работу поиска статей"""
+        url = reverse('blog:post_search')
+        response = self.client.get(url, {
+            'query': 'Published',
+        })
+
+        self.assertEqual(response.status_code, 200)
+
+        self.assertContains(response, self.published_post.title)
+
+        self.assertNotContains(response, self.draft_post.title)
