@@ -1,6 +1,7 @@
 from django import template
 from ..models import Post
 from django.db.models import Count, Q
+import nh3
 import markdown
 from django.utils.safestring import mark_safe
 
@@ -30,4 +31,7 @@ def show_latest_posts(count=5):
 
 @register.filter(name='markdown')
 def markdown_format(text):
-    return mark_safe(markdown.markdown(text, extensions=['extra', 'nl2br', 'sane_lists']))
+    raw_html = markdown.markdown(text, extensions=['extra', 'nl2br', 'sane_lists'])
+    cleaned_html = nh3.clean(raw_html)
+
+    return mark_safe(cleaned_html)
