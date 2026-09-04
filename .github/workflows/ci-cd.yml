@@ -1,0 +1,39 @@
+name: Django CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    name: Run Django Tests in Docker
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            echo "SECRET_KEY=ci-secret-key-12345" > .env
+            echo "DEBUG=True" >> .env
+            echo "DATABASE_URL=postgres://postgres:postgres@db:5432/postgres" >> .env
+          fi
+
+      - name: Build and Start Containers
+        run: docker compose up -d --build
+
+      - name: Wait for Postgres
+        run: sleep 5
+
+      - name: Run Tests
+        run: docker compose exec -T web python mysite/manage.py test
+
+      - name: Tear Down Docker
+        if: always()
+        run: docker compose down
