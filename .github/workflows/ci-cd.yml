@@ -19,6 +19,7 @@ jobs:
         run: |
           if [ -f .env.example ]; then
             cp .env.example .env
+            cp .env.example mysite/.env
           else
             echo "SECRET_KEY=ci-secret-key-12345" > .env
             echo "DEBUG=True" >> .env
