@@ -32,7 +32,7 @@ jobs:
         run: sleep 5
 
       - name: Run Tests
-        run: docker compose exec -T web python mysite/manage.py test
+        run: docker compose run --rm web python mysite/manage.py test
 
       - name: Tear Down Docker
         if: always()
