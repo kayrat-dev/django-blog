@@ -1,39 +1,42 @@
-version: '3.8'
-
 services:
+  web:
+    build: .
+    container_name: blog_web
+    command: python mysite/manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/blog
+      CELERY_BROKER_URL: redis://redis:6379/0
+    depends_on:
+      - db
+
   db:
     image: postgres:16-alpine
     container_name: blog_postgres
     environment:
       POSTGRES_DB: blog
-      POSTGRES_USER: blog
-      POSTGRES_PASSWORD: 12345_secure_password
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
     container_name: blog_redis
-    ports:
-      - "6379:6379"
 
-  web:
+  worker:
     build: .
-    container_name: blog_django
-    command: python mysite/manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
-    ports:
-      - "8000:8000"
+    container_name: blog_worker
+    command: celery -A mysite.celery worker --loglevel=info
+    working_dir: /app/mysite
     environment:
-      - DEBUG=True
-      - DATABASE_URL=postgres://blog:12345_secure_password@db:5432/blog
-      - REDIS_URL=redis://redis:6379/1
+      DATABASE_URL: postgres://postgres:postgres@db:5432/blog_db
+      CELERY_BROKER_URL: redis://redis:6379/0
     depends_on:
       - db
       - redis
 
 volumes:
   postgres_data:
+
