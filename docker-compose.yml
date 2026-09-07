@@ -6,7 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/blog
+      DATABASE_URL: ${DATABASE_URL}
       CELERY_BROKER_URL: redis://redis:6379/0
     depends_on:
       - db
@@ -15,9 +15,9 @@ services:
     image: postgres:16-alpine
     container_name: blog_postgres
     environment:
-      POSTGRES_DB: blog
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -31,7 +31,7 @@ services:
     command: celery -A mysite.celery worker --loglevel=info
     working_dir: /app/mysite
     environment:
-      DATABASE_URL: postgres://postgres:postgres@db:5432/blog_db
+      DATABASE_URL: ${DATABASE_URL}
       CELERY_BROKER_URL: redis://redis:6379/0
     depends_on:
       - db
