@@ -37,9 +37,9 @@
 
 ## 🛠 Технологический стек
 
-* **Бэкенд:** Python 3.14+, Django 6.0
+* **Бэкенд:** Python 3.12+, Django 6.0
 * **База данных:** PostgreSQL (полнотекстовый поиск + модуль `pg_trgm` для триграммного поиска)
-* **Фоновые задачи:** Celery + Redis / RabbitMQ
+* **Фоновые задачи:** Celery + Redis
 * **Работа с Markdown:** `markdown`
 * **Оптимизация ORM:** `select_related`, `prefetch_related` (защита от N+1)
 * **Конфигурация:** `django-environ`, разделение настроек (`dev.py` / `prod.py`)
@@ -48,27 +48,62 @@
 
 ## 🚀 Запуск и настройка проекта
 
-### 1. Клонирование и установка зависимостей
+### Основной способ: Запуск через Docker Compose (Рекомендуется)
 
+Самый быстрый способ запустить приложение вместе с PostgreSQL и Redis:
+
+1. Скопируйте пример переменных окружения в корень проекта (`.env`):
+   ```bash
+   cp env.example .env
+   ```
+2. Запустите контейнеры в фоновом режиме:
+   ```bash
+   docker compose up -d --build
+   ```
+3. Проверьте статус запущенных контейнеров:
+   ```bash
+   docker compose ps
+   ```
+4. Выполните миграции и создайте суперпользователя:
+   ```bash
+   docker compose exec web python mysite/manage.py migrate
+   docker compose exec web python mysite/manage.py createsuperuser
+   ```
+
+**Команды для управления Docker Compose:**
+* Просмотр логов веб-приложения:
+  ```bash
+  docker compose logs web
+  ```
+* Просмотр логов Celery воркера:
+  ```bash
+  docker compose logs worker
+  ```
+* Остановка контейнеров:
+  ```bash
+  docker compose down
+  ```
+
+Сайт будет доступен по адресу: [http://127.0.0.1:8000/blog/](http://127.0.0.1:8000/blog/)
+
+---
+
+### Альтернативный способ: Локальный запуск (без Docker)
+
+#### 1. Установка зависимостей
+Из корневой директории проекта:
 ```bash
-# Клонируйте репозиторий и перейдите в папку проекта
-cd mysite
-
-# Создайте и активируйте виртуальное окружение
-python -m venv venv
-# Windows:
-venv\Scripts\activate
+python -m venv .venv
+# Windows (PowerShell):
+.venv\Scripts\Activate.ps1
 # Linux/macOS:
-source venv/bin/activate
+source .venv/bin/activate
 
-# Установите зависимости
 pip install -r requirements.txt
 ```
 
-### 2. Переменные окружения (`.env`)
-
-Создайте файл `.env` в корневой директории `mysite/` (рядом с `manage.py`):
-
+#### 2. Переменные окружения (`.env`)
+Создайте файл `.env` в **корне репозитория** (не внутри папки `mysite`):
 ```env
 SECRET_KEY=your-secret-key-here
 DEBUG=True
@@ -77,52 +112,60 @@ DATABASE_URL=postgres://user:password@localhost:5432/blog_db
 CELERY_BROKER_URL=redis://localhost:6379/0
 ```
 
-### 3. Настройка PostgreSQL и миграции
-
-1. Убедитесь, что PostgreSQL запущен и создана база данных `blog_db`.
-2. Примените миграции (расширение `pg_trgm` для триграммного поиска включится автоматически):
-   ```bash
-   python manage.py migrate
-   ```
-3. Создайте администратора:
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-### 4. Запуск сервера разработки
-
-В одном терминале запустите сервер Django:
+#### 3. Миграции и запуск
 ```bash
-python manage.py runserver
+python mysite/manage.py migrate
+python mysite/manage.py createsuperuser
 ```
 
-В другом терминале запустите воркер Celery для обработки фоновых задач:
+В одном терминале запустите сервер разработки:
 ```bash
-celery -A mysite worker -l info
+python mysite/manage.py runserver
 ```
 
-Теперь сайт доступен по адресу: [http://127.0.0.1:8000/blog/](http://127.0.0.1:8000/blog/)
+В другом терминале запустите воркер Celery:
+```bash
+celery -A mysite.celery worker --loglevel=info
+```
+
+---
+
+## 🐳 Docker Hub & CI/CD
+
+### CI/CD Pipeline
+Проект настроен с использованием GitHub Actions (`.github/workflows/ci-cd.yml`):
+* **Git push / Pull Request** → Запуск тегов/тестов в Docker → Сборка Docker image → Публикация в Docker Hub.
+
+### Docker Hub Image
+* **Образ:** `kayrattad/django-blog:latest`
+
+> **Важно:** Команда `docker pull kayrattad/django-blog:latest` сама по себе не запускает полностью готовое приложение, так как веб-приложение зависит от работающей базы данных PostgreSQL, брокера Redis и правильно настроенных переменных окружения (например, через `docker-compose.yml`).
 
 ---
 
 ## 📂 Структура проекта
 
 ```text
-mysite/
-├── blog/                   # Основное приложение блога
-│   ├── templatetags/       # Кастомные кастомные теги и фильтры (Markdown, последние посты)
-│   ├── templates/          # HTML-шаблоны сайта
-│   ├── admin.py            # Настройки админ-панели
-│   ├── feeds.py            # RSS-лента
-│   ├── models.py           # Модели Post и Comment
-│   ├── sitemaps.py         # Генерация sitemap.xml
-│   ├── tasks.py            # Асинхронные задачи Celery
-│   ├── urls.py             # Маршруты блога
-│   └── views.py            # Представления (Class-Based Views)
-├── mysite/                 # Пакет конфигурации проекта
-│   ├── settings/           # Настройки (base.py, dev.py, prod.py)
-│   ├── celery.py           # Конфигурация Celery
-│   └── urls.py             # Главные маршруты
-├── manage.py
+blog_app/
+├── .github/workflows/      # CI/CD пайплайны GitHub Actions
+├── mysite/                 # Корневой каталог Django
+│   ├── blog/               # Основное приложение блога
+│   │   ├── templatetags/   # Кастомные теги и фильтры (Markdown, последние посты)
+│   │   ├── templates/      # HTML-шаблоны сайта
+│   │   ├── admin.py        # Настройки админ-панели
+│   │   ├── feeds.py        # RSS-лента
+│   │   ├── models.py       # Модели Post и Comment
+│   │   ├── sitemaps.py     # Генерация sitemap.xml
+│   │   ├── tasks.py        # Асинхронные задачи Celery
+│   │   ├── urls.py         # Маршруты блога
+│   │   └── views.py        # Представления (Class-Based Views)
+│   ├── mysite/             # Пакет конфигурации проекта
+│   │   ├── settings/       # Настройки (base.py, dev.py, prod.py)
+│   │   ├── celery.py       # Конфигурация Celery
+│   │   └── urls.py         # Главные маршруты
+│   └── manage.py
+├── Dockerfile
+├── docker-compose.yml
+├── env.example
 └── requirements.txt
 ```
