@@ -2,6 +2,8 @@ services:
   web:
     build: .
     container_name: blog_web
+    env_file:
+      - .env
     command: python mysite/manage.py runserver 0.0.0.0:8000
     ports:
       - "8000:8000"
@@ -28,6 +30,8 @@ services:
   worker:
     build: .
     container_name: blog_worker
+    env_file:
+      - .env
     command: celery -A mysite.celery worker --loglevel=info
     working_dir: /app/mysite
     environment:
