@@ -131,7 +131,7 @@ class PostShareView(FormView):
             from_email=None,
             recipient_list=[cd['to']]
         )
-        context = self.get_context_data(sent=True)
+        context = self.get_context_data(sent=True, form=form)
         return self.render_to_response(context)
 
 

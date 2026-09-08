@@ -1,6 +1,27 @@
 {% load blog_tags %}
 {% load static %}
 
+{% if messages %}
+  <ul class="messages" id="django-messages">
+    {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
+
+  <script>
+    // Автоматическое скрытие через 3 секунды
+    setTimeout(function() {
+      const messagesBlock = document.getElementById('django-messages');
+      if (messagesBlock) {
+        messagesBlock.style.transition = 'opacity 0.5s ease';
+        messagesBlock.style.opacity = '0';
+        setTimeout(() => messagesBlock.remove(), 500);
+      }
+    }, 4000);
+  </script>
+{% endif %}
+
+
 <!DOCTYPE html>
 <html lang="ru">
 
