@@ -1,99 +1,100 @@
 # Блог на Django 🚀
 
-Современный, производительный и полнофункциональный блог, написанный на **Django 6** с поддержкой Markdown, асинхронной отправкой писем через **Celery**, тегированием и умным поиском на базе **PostgreSQL**.
+Современный блог, написанный на **Django 6** с поддержкой Markdown, асинхронной отправкой писем через **Celery**, тегированием и полнотекстовым/триграммным поиском на базе **PostgreSQL**.
 
 ---
 
 ## ⭐️ Основные возможности
 
 * 📝 **Публикация постов**:
-  * Поддержка статусов статей (черновик / опубликовано).
-  * ЧПУ (Человекопонятные URL) с датой и слагом: `/blog/2026/8/12/my-first-post/`.
-  * Разметка **Markdown** в теле статей с безопасной компиляцией в HTML.
+  * Статусы статей (черновик / опубликовано).
+  * ЧПУ (URL с датой и слагом): `/blog/2026/8/12/my-first-post/`.
+  * Разметка **Markdown** в теле статей с безопасной фильтрацией HTML через `nh3`.
 
 * 🏷 **Тегирование и рекомендации**:
   * Категоризация статей по тегам (`django-taggit`).
-  * Фильтрация статей по выбранному тегу (`/blog/tag/python/`).
+  * Фильтрация статей по тегу (`/blog/tag/<tag_slug>/`).
   * Автоматический подбор **похожих статей** на основе общих тегов.
 
 * 💬 **Комментарии**:
-  * Добавление комментариев к статьям.
-  * Система модерации (активные / скрытые комментарии).
-  * Корректная обработка ошибок формы прямо на странице статьи.
+  * Добавление комментариев к статьям и модерация (`active=True/False`).
+  * Обработка ошибок валидации формы прямо на странице статьи.
 
-* ⚡️ **Асинхронные задачи (Celery)**:
-  * Возможность "поделиться статьёй по E-mail".
-  * Отправка писем вынесена в фоновые задачи **Celery**, чтобы сайт работал мгновенно и не заставлял пользователя ждать ответа SMTP-сервера.
+* ⚡️ **Асинхронные задачи (Celery + Redis)**:
+  * Отправка постов по e-mail вынесена в фоновые задачи **Celery**.
 
 * 🔍 **Умный поиск (PostgreSQL)**:
-  * Двухуровневый поиск: полнотекстовый поиск по заголовку и тексту с ранжированием результатов (`SearchVector`, `SearchRank`).
-  * Автоматический фоллбэк на поиск по сходству триграмм (`TrigramSimilarity`), если точных совпадений не найдено (спасёт при опечатках).
+  * Двухуровневый поиск: полнотекстовый поиск (`SearchVector`, `SearchRank`) с фоллбэком на триграммный поиск (`TrigramSimilarity`).
 
 * 📡 **SEO & Синодация**:
-  * Автоматическая генерация XML-карты сайта (`/sitemap.xml`).
-  * Полноценный RSS-канал для подписчиков (`/blog/feed/`).
+  * XML-карта сайта (`/sitemap.xml`).
+  * RSS-канал для подписчиков (`/blog/feed/`).
 
 ---
 
 ## 🛠 Технологический стек
 
-* **Бэкенд:** Python 3.12+, Django 6.0
-* **База данных:** PostgreSQL (полнотекстовый поиск + модуль `pg_trgm` для триграммного поиска)
-* **Фоновые задачи:** Celery + Redis
-* **Работа с Markdown:** `markdown`
-* **Оптимизация ORM:** `select_related`, `prefetch_related` (защита от N+1)
+* **Бэкенд:** Python 3.12+, Django 6.0.6
+* **База данных:** PostgreSQL 16 (`pg_trgm`)
+* **Фоновые задачи:** Celery 5.6+, Redis 7+
+* **Работа с Markdown & HTML:** `markdown`, `nh3`
 * **Конфигурация:** `django-environ`, разделение настроек (`dev.py` / `prod.py`)
+
+---
+
+## 📂 Структура маршрутов (URL)
+
+| URL | Название маршрута | Описание |
+| :--- | :--- | :--- |
+| `/blog/` | `blog:post_list` | Главная страница блога (список опубликованных постов) |
+| `/blog/tag/<slug>/` | `blog:post_list_by_tag` | Фильтрация постов по тегу |
+| `/blog/<year>/<month>/<day>/<slug>/` | `blog:post_detail` | Страница конкретного поста |
+| `/blog/<post_id>/share/` | `blog:post_share` | Форма отправки поста по e-mail |
+| `/blog/<post_id>/comment/` | `blog:post_comment` | Добавление комментария (POST) |
+| `/blog/feed/` | `blog:post_feed` | RSS-лента последних постов |
+| `/blog/search/` | `blog:post_search` | Поиск по статьям |
+| `/sitemap.xml` | `sitemap` | Карта сайта XML |
+| `/admin/` | — | Панель администратора Django |
 
 ---
 
 ## 🚀 Запуск и настройка проекта
 
-### Основной способ: Запуск через Docker Compose (Рекомендуется)
+### Вариант 1: Запуск через Docker Compose (Рекомендуется)
 
-Самый быстрый способ запустить приложение вместе с PostgreSQL и Redis:
-
-1. Скопируйте пример переменных окружения в корень проекта (`.env`):
+1. **Скопируйте конфигурацию переменных окружения**:
    ```bash
    cp env.example .env
    ```
-2. Запустите контейнеры в фоновом режиме:
+
+2. **Запустите контейнеры**:
    ```bash
    docker compose up -d --build
    ```
-3. Проверьте статус запущенных контейнеров:
-   ```bash
-   docker compose ps
-   ```
-4. Выполните миграции и создайте суперпользователя:
+
+3. **Примените миграции и создайте суперпользователя**:
    ```bash
    docker compose exec web python mysite/manage.py migrate
    docker compose exec web python mysite/manage.py createsuperuser
    ```
 
-**Команды для управления Docker Compose:**
-* Просмотр логов веб-приложения:
-  ```bash
-  docker compose logs web
-  ```
-* Просмотр логов Celery воркера:
-  ```bash
-  docker compose logs worker
-  ```
-* Остановка контейнеров:
-  ```bash
-  docker compose down
-  ```
+4. **Проверьте запущенные сервисы и логи**:
+   ```bash
+   docker compose ps
+   docker compose logs -f web
+   docker compose logs -f worker
+   ```
 
-Сайт будет доступен по адресу: [http://127.0.0.1:8000/blog/](http://127.0.0.1:8000/blog/)
+Сайт доступен по адресу: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 
 ---
 
-### Альтернативный способ: Локальный запуск (без Docker)
+### Вариант 2: Локальный запуск без Docker
 
 #### 1. Установка зависимостей
-Из корневой директории проекта:
 ```bash
 python -m venv .venv
+
 # Windows (PowerShell):
 .venv\Scripts\Activate.ps1
 # Linux/macOS:
@@ -103,69 +104,59 @@ pip install -r requirements.txt
 ```
 
 #### 2. Переменные окружения (`.env`)
-Создайте файл `.env` в **корне репозитория** (не внутри папки `mysite`):
+Создайте файл `.env` в корне репозитория (`blog_app/.env`):
 ```env
 SECRET_KEY=your-secret-key-here
 DEBUG=True
 DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=postgres://user:password@localhost:5432/blog_db
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/blog
 CELERY_BROKER_URL=redis://localhost:6379/0
+DJANGO_EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 ```
 
 #### 3. Миграции и запуск
+
+> **Важно:** Все команды управления Django и Celery выполняются с указанием рабочей директории `mysite`.
+
+Применение миграций:
 ```bash
 python mysite/manage.py migrate
 python mysite/manage.py createsuperuser
 ```
 
-В одном терминале запустите сервер разработки:
+Запуск сервера разработки:
 ```bash
 python mysite/manage.py runserver
 ```
 
-В другом терминале запустите воркер Celery:
+Запуск воркера Celery (в отдельном терминале):
 ```bash
-celery -A mysite.celery worker --loglevel=info
+# Вариант A: перейдя в папку mysite
+cd mysite
+celery -A mysite worker --loglevel=info
+
+# Вариант B: из корня репозитория
+celery -A mysite --workdir=mysite worker --loglevel=info
 ```
 
 ---
 
-## 🐳 Docker Hub & CI/CD
+## 🐳 CI/CD и Docker Hub
 
-### CI/CD Pipeline
-Проект настроен с использованием GitHub Actions (`.github/workflows/ci-cd.yml`):
-* **Git push / Pull Request** → Запуск тегов/тестов в Docker → Сборка Docker image → Публикация в Docker Hub.
-
-### Docker Hub Image
-* **Образ:** `kayrattad/django-blog:latest`
-
-> **Важно:** Команда `docker pull kayrattad/django-blog:latest` сама по себе не запускает полностью готовое приложение, так как веб-приложение зависит от работающей базы данных PostgreSQL, брокера Redis и правильно настроенных переменных окружения (например, через `docker-compose.yml`).
+Проект содержит GitHub Actions workflow (`.github/workflows/ci-cd.yml`):
+* Автоматический прогон тегов и Django-тестов в Docker при пуше в `main`/`master` или PR.
+* Сборка и публикация образа в Docker Hub: `kayrattad/django-blog:latest`.
 
 ---
 
-## 📂 Структура проекта
+## 🧪 Запуск тестов
 
-```text
-blog_app/
-├── .github/workflows/      # CI/CD пайплайны GitHub Actions
-├── mysite/                 # Корневой каталог Django
-│   ├── blog/               # Основное приложение блога
-│   │   ├── templatetags/   # Кастомные теги и фильтры (Markdown, последние посты)
-│   │   ├── templates/      # HTML-шаблоны сайта
-│   │   ├── admin.py        # Настройки админ-панели
-│   │   ├── feeds.py        # RSS-лента
-│   │   ├── models.py       # Модели Post и Comment
-│   │   ├── sitemaps.py     # Генерация sitemap.xml
-│   │   ├── tasks.py        # Асинхронные задачи Celery
-│   │   ├── urls.py         # Маршруты блога
-│   │   └── views.py        # Представления (Class-Based Views)
-│   ├── mysite/             # Пакет конфигурации проекта
-│   │   ├── settings/       # Настройки (base.py, dev.py, prod.py)
-│   │   ├── celery.py       # Конфигурация Celery
-│   │   └── urls.py         # Главные маршруты
-│   └── manage.py
-├── Dockerfile
-├── docker-compose.yml
-├── env.example
-└── requirements.txt
+Выполнение unit-тестов проекта:
+```bash
+python mysite/manage.py test blog
+```
+
+Запуск тестов в Docker-окружении:
+```bash
+docker compose run --rm web python mysite/manage.py test blog
 ```
