@@ -21,7 +21,6 @@ from blog.sitemaps import PostSitemap
 from django.conf import settings
 from django.views.generic import RedirectView
 
-
 sitemaps = {'posts': PostSitemap}
 
 urlpatterns = [

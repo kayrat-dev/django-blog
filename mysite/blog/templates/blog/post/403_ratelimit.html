@@ -1,0 +1,11 @@
+{% extends "blog/base.html" %}
+
+{% block title %}Rate limit exceeded{% endblock %}
+
+{% block content %}
+  <div style="text-align: center; padding: 40px 20px;">
+    <h2>429 — Too many requests</h2>
+    <p>{{ message }}</p>
+    <p><a href="{% url 'blog:post_list' %}">Back to home</a></p>
+  </div>
+{% endblock %}

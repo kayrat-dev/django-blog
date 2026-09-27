@@ -1,11 +1,8 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db.models import Count
 from django.views.generic import ListView, FormView, CreateView, DetailView
-from django.core.mail import send_mail
 from django.contrib.postgres.search import TrigramSimilarity, SearchVector, SearchQuery, SearchRank
-from django.conf import settings
 from django.utils.decorators import method_decorator
-from django.views.decorators.http import require_POST
 from taggit.models import Tag
 from django.contrib import messages
 from django_ratelimit.decorators import ratelimit
@@ -20,7 +17,7 @@ from .tasks import send_post_share_email
 class PostCommentView(CreateView):
     model = Comment
     form_class = CommentForm
-    template_name = 'blog/post/comment.html'
+    template_name = 'blog/post/detail.html'
 
     def form_invalid(self, form):
         post = get_object_or_404(Post, id=self.kwargs.get('post_id'), status=Post.Status.PUBLISHED)

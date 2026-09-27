@@ -24,13 +24,11 @@ jobs:
             echo "SECRET_KEY=ci-secret-key-12345" > .env
             echo "DEBUG=True" >> .env
             echo "DATABASE_URL=postgres://postgres:postgres@db:5432/postgres" >> .env
+            cp .env mysite/.env
           fi
 
       - name: Build and Start Containers
-        run: docker compose up -d --build
-
-      - name: Wait for Postgres
-        run: sleep 5
+        run: docker compose up -d --build --wait
 
       - name: Run Tests
         run: docker compose run --rm -e SECRET_KEY="django-insecure-ci-key-for-testing-only" web python mysite/manage.py test
@@ -62,3 +60,5 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/django-blog:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
