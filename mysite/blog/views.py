@@ -19,8 +19,14 @@ class PostCommentView(CreateView):
     form_class = CommentForm
     template_name = 'blog/post/detail.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        self.blog_post = get_object_or_404(Post, id=kwargs['post_id'], status=Post.Status.PUBLISHED)
+        return super().dispatch(request, *args, **kwargs)
+
+
     def form_invalid(self, form):
-        post = get_object_or_404(Post, id=self.kwargs.get('post_id'), status=Post.Status.PUBLISHED)
+        post = self.blog_post
+
         comments = post.comments.filter(active=True)
 
         post_tags_ids = post.tags.values_list('id', flat=True)
@@ -29,9 +35,6 @@ class PostCommentView(CreateView):
 
         return render(self.request, 'blog/post/detail.html', {'post': post, 'form': form, 'comments': comments, 'similar_posts': similar_posts})
 
-    def dispatch(self, request, *args, **kwargs):
-        self.blog_post = get_object_or_404(Post, id=kwargs['post_id'], status=Post.Status.PUBLISHED)
-        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         comment = form.save(commit=False)
