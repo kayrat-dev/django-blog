@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.urls import reverse
 from taggit.managers import TaggableManager
+from django.contrib.postgres.indexes import GinIndex, OpClass
 
 class PublishedManager(models.Manager):
     def get_queryset(self):
@@ -32,6 +33,17 @@ class Post(models.Model):
         ordering = ['-publish']
         indexes = [
             models.Index(fields=['-publish']),
+
+            GinIndex(
+                OpClass('title', name='gin_trgm_ops'),
+                name='post_title_trgm_gin_idx',
+            ),
+
+            GinIndex(
+                OpClass('body', name='gin_trgm_ops'),
+                name='post_body_trgm_gin_idx',
+            ),
+
         ]
 
     def __str__(self):
