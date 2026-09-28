@@ -1,9 +1,11 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 from django.core import mail
 
 from .models import Post
+
+User = get_user_model()
 
 class PostModelTest(TestCase):
 
